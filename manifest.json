@@ -1,0 +1,30 @@
+{
+  "name": "Extension",
+  "version": "1.0.0",
+  "description": "Browser tabs will open automatically",
+  "manifest_version": 2,
+  "minimum_chrome_version": "68",
+  "browser_action": {
+    "default_popup": "src/popup.html"
+  },
+  "permissions": [
+    "storage",
+		"contextMenus",
+		"activeTab",
+		"https://gitlab.com/*"
+  ],
+  "content_scripts": [
+    {
+      "run_at": "document_start",
+      "matches": [
+				"https://gitlab.com/*"
+			],
+      "js": [
+        "src/background.js"
+      ]
+    }
+  ],
+  "web_accessible_resources": [
+    "config.json"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "myWikiTab": {
+    "sourcePattern": "https://gitlab.com/solidbranch/clight/clight/-/issues/{0}",
+    "targetPattern": "https://en.wikipedia.org/wiki/{0}",
+    "mapping": {
+      "128": "Google_Chrome",
+      "142": "Code_refactoring"
+    }
+  },
+  "myChromeDownloadTab": {
+    "sourcePattern": "https://gitlab.com/solidbranch/clight/clight/-/issues/{0}",
+    "targetPattern": "https://www.google.com/intl/{0}/chrome",
+    "mapping": {
+      "128": "ru_ru",
+      "142": "en_us"
+    }
+  }
+}

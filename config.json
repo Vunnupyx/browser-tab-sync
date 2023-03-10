@@ -5,7 +5,8 @@
     "mapping": {
       "128": "Google_Chrome",
       "142": "Code_refactoring"
-    }
+    },
+    "browserTabSyncMode": "two-way"
   },
   "myChromeDownloadTab": {
     "sourcePattern": "https://gitlab.com/solidbranch/clight/clight/-/issues/{0}",

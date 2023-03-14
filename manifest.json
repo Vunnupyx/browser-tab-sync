@@ -27,14 +27,8 @@
         "https://gitlab.com/*"
       ],
       "js": [
-        "src/background.js",
-        "src/config.service.js"
+        "src/main.js"
       ]
-    },
-    {
-      "run_at": "document_start",
-      "matches": ["http://*/*", "https://*/*"],
-      "js": ["src/content.js"]
     }
   ]
 }

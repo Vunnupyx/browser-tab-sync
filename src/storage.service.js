@@ -27,17 +27,15 @@ class StorageService {
         return new Promise((resolve, reject) => {
             chrome.storage.local.get([WINDOWS_KEY], (result) => {
                 if (chrome.runtime.lastError) reject(chrome.runtime.lastError);
-
-                const researches = result.windows ?? [];
+                const researches = result.windows || {};
                 resolve(researches);
             });
         });
     }
 
-    static saveWindows = async (key) => {
-        const windows = await this.getWindows();
-        const updatedWindows = [...windows, key];
-
+    static saveWindows = async (key, tabId) => {
+        const windows = await this.getWindows()
+        const updatedWindows = {...windows, [key]: tabId};
         return new Promise((resolve, reject) => {
             chrome.storage.local.set({[WINDOWS_KEY]: updatedWindows}, () => {
                 if (chrome.runtime.lastError) reject(chrome.runtime.lastError);

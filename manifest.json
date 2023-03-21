@@ -7,7 +7,7 @@
   "background": {
     "scripts": [
       "src/background.js",
-      "src/config.service.js"
+      "src/storage.service.js"
     ]
   },
   "browser_action": {

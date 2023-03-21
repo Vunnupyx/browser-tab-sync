@@ -1,5 +1,5 @@
 const CONFIGS_KEY = 'configs';
-const WINDOWS_KEY = 'windows';
+const TABS_KEY = 'tabs';
 
 class StorageService {
 
@@ -23,30 +23,30 @@ class StorageService {
         });
     }
 
-    static getWindows = () => {
+    static getTabs = () => {
         return new Promise((resolve, reject) => {
-            chrome.storage.local.get([WINDOWS_KEY], (result) => {
+            chrome.storage.local.get([TABS_KEY], (result) => {
                 if (chrome.runtime.lastError) reject(chrome.runtime.lastError);
-                const researches = result.windows || {};
+                const researches = result.tabs || {};
                 resolve(researches);
             });
         });
     }
 
-    static saveWindows = async (key, tabId) => {
-        const windows = await this.getWindows()
-        const updatedWindows = {...windows, [key]: tabId};
+    static saveTabs = async (key, tabId) => {
+        const tabs = await this.getTabs()
+        const updatedTabs = {...tabs, [key]: tabId};
         return new Promise((resolve, reject) => {
-            chrome.storage.local.set({[WINDOWS_KEY]: updatedWindows}, () => {
+            chrome.storage.local.set({[TABS_KEY]: updatedTabs}, () => {
                 if (chrome.runtime.lastError) reject(chrome.runtime.lastError);
-                resolve(updatedWindows);
+                resolve(updatedTabs);
             });
         });
     }
 
-    static clearWindows = () => {
+    static clearTabs = () => {
         return new Promise((resolve, reject) => {
-            chrome.storage.local.remove([WINDOWS_KEY], () => {
+            chrome.storage.local.remove([TABS_KEY], () => {
                 if (chrome.runtime.lastError)
                     reject(chrome.runtime.lastError);
                 resolve();

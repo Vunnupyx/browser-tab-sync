@@ -10,7 +10,7 @@
   },
   "myChromeDownloadTab": {
     "sourcePattern": "https://gitlab.com/solidbranch/clight/clight/-/issues/{0}",
-    "targetPattern": "https://www.google.com/intl/{0}/chrome",
+    "targetPattern": "https://www.google.com/intl/{0}/chrome/",
     "mapping": {
       "128": "ru_ru",
       "142": "en_us"

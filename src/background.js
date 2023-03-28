@@ -5,7 +5,7 @@ let background = {
     tabs: {},
 
     init: function () {
-        this.loadConfig().then(() => StorageService.clearTabs())
+        this.loadConfig().then(() => StorageService.clearTabs());
 
         chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             if (request.fn in background) {
@@ -15,7 +15,7 @@ let background = {
     },
 
     loadConfig: async function () {
-        this.config = await StorageService.getConfigs()
+        this.config = await StorageService.getConfigs();
     },
 
     setConfig: async function (request) {
@@ -26,9 +26,9 @@ let background = {
         return new Promise((resolve) => {
             chrome.tabs.get(tabId, async (tab) => {
                 if (chrome.runtime.lastError) {
-                    resolve(false)
+                    resolve(false);
                 }
-                resolve(tab && tab.url === url)
+                resolve(tab && tab.url === url);
             })
         })
     },
@@ -37,34 +37,40 @@ let background = {
         return new Promise(async (resolve) => {
             if (this.tabs.hasOwnProperty(key)) {
                 const isTabAlreadyOpen = await this.isTabAlreadyOpen(this.tabs[key], url);
-                if (!isTabAlreadyOpen)
+                if (!isTabAlreadyOpen) {
                     chrome.tabs.update(this.tabs[key], {url}, () => {
                         if (chrome.runtime.lastError)
-                            chrome.tabs.create({url}, (res) => {
-                                resolve(StorageService.saveTabs(key, res.id))
+                            chrome.tabs.create({url, active: false}, (res) => {
+                                resolve(StorageService.saveTabs(key, res.id));
                             })
+                        resolve(this.tabs);
                     })
+                } else {
+                    resolve(this.tabs);
+                }
             } else {
-                chrome.tabs.create({url}, (res) => {
-                    resolve(StorageService.saveTabs(key, res.id))
+                chrome.tabs.create({url, active: false}, (res) => {
+                    resolve(StorageService.saveTabs(key, res.id));
                 })
             }
         })
     },
 
     openTabs: async function (request, sender) {
-        this.tabs = await StorageService.saveTabs(TAB_MAIN, sender.tab.id)
-        for (const key in this.config) {
-            if (this.config.hasOwnProperty(key)) {
-                const tab = this.config[key];
-                const escapeSourceUrl = tab.sourcePattern?.replace(/[/\-\\^$*+?.()|[\]]/g, '\\$&')
-                const sourceUrlRegex = escapeSourceUrl?.replace(/[{0}]+/, '(\\d+)');
-                const idSourceUrl = request.documentURL.match(sourceUrlRegex);
-                if (idSourceUrl && idSourceUrl[1] && tab.mapping.hasOwnProperty(idSourceUrl[1])) {
-                    const targetUrl = tab.targetPattern.replace(/[{0}]+/, tab.mapping[idSourceUrl[1]])
-                    this.tabs = await this.updateTab(key, targetUrl)
-                    if (tab.hasOwnProperty('browserTabSyncMode'))
-                        await this.handleTabSync(key);
+        if (sender.tab.active) {
+            this.tabs = await StorageService.saveTabs(TAB_MAIN, sender.tab.id);
+            for (const key in this.config) {
+                if (this.config.hasOwnProperty(key)) {
+                    const tab = this.config[key];
+                    const escapeSourceUrl = tab.sourcePattern?.replace(/[/\-\\^$*+?.()|[\]]/g, '\\$&');
+                    const sourceUrlRegex = escapeSourceUrl?.replace(/[{0}]+/, '(\\d+)');
+                    const idSourceUrl = request.documentURL.match(sourceUrlRegex);
+                    if (idSourceUrl && idSourceUrl[1] && tab.mapping.hasOwnProperty(idSourceUrl[1])) {
+                        const targetUrl = tab.targetPattern.replace(/[{0}]+/, tab.mapping[idSourceUrl[1]]);
+                        this.tabs = await this.updateTab(key, targetUrl);
+                        if (tab.hasOwnProperty('browserTabSyncMode'))
+                            await this.handleTabSync(key);
+                    }
                 }
             }
         }
@@ -75,9 +81,9 @@ let background = {
             chrome.tabs.onUpdated.addListener(function (tabId, changeInfo) {
                     chrome.tabs.query(
                         {active: true, currentWindow: true},
-                        async ([tab]) => {
-                            if (changeInfo.url && tab && background.tabs[key] === tab.id)
-                                await background.updateMainTab(tab.url, key);
+                        ([tab]) => {
+                            if (changeInfo.url === tab?.url && tab && background.tabs[key] === tab.id)
+                                background.updateMainTab(tab.url, key);
                         }
                     );
                 }
@@ -88,7 +94,7 @@ let background = {
     updateMainTab: async function (windowUrl, key) {
         if (this.config.hasOwnProperty(key)) {
             const tab = this.config[key];
-            const escapeTargetUrl = tab.targetPattern?.replace(/[/\-\\^$*+?.()|[\]]/g, '\\$&')
+            const escapeTargetUrl = tab.targetPattern?.replace(/[/\-\\^$*+?.()|[\]]/g, '\\$&');
             const targetUrlRegex = escapeTargetUrl?.replace(/[{0}]+/, '(\\w+)');
             const idTargetUrl = windowUrl.match(targetUrlRegex);
 
@@ -98,8 +104,8 @@ let background = {
                 );
 
                 if (tabsId) {
-                    const sourceUrl = tab.sourcePattern.replace(/[{0}]+/, tabsId)
-                    this.tabs = await this.updateTab(TAB_MAIN, sourceUrl)
+                    const sourceUrl = tab.sourcePattern.replace(/[{0}]+/, tabsId);
+                    this.tabs = await this.updateTab(TAB_MAIN, sourceUrl);
                 }
 
             }

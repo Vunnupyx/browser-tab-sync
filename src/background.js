@@ -3,6 +3,7 @@ const TAB_MAIN = 'ORIGINAL_TAB'
 let background = {
     config: {},
     tabs: {},
+    keysOfSyncedTabs: [],
 
     init: function () {
         this.loadConfig().then(() => StorageService.clearTabs());
@@ -43,7 +44,9 @@ let background = {
                             chrome.tabs.create({url, active: false}, (res) => {
                                 resolve(StorageService.saveTabs(key, res.id));
                             })
-                        resolve(this.tabs);
+                        else {
+                            resolve(this.tabs);
+                        }
                     })
                 } else {
                     resolve(this.tabs);
@@ -58,6 +61,9 @@ let background = {
 
     openTabs: async function (request, sender) {
         if (sender.tab.active) {
+            this.keysOfSyncedTabs = [];
+            chrome.tabs.onUpdated.removeListener(this.handleTabSync);
+
             this.tabs = await StorageService.saveTabs(TAB_MAIN, sender.tab.id);
             for (const key in this.config) {
                 if (this.config.hasOwnProperty(key)) {
@@ -69,26 +75,33 @@ let background = {
                         const targetUrl = tab.targetPattern.replace(/[{0}]+/, tab.mapping[idSourceUrl[1]]);
                         this.tabs = await this.updateTab(key, targetUrl);
                         if (tab.hasOwnProperty('browserTabSyncMode'))
-                            await this.handleTabSync(key);
+                            this.keysOfSyncedTabs.push(key);
                     }
                 }
             }
+            chrome.tabs.onUpdated.addListener(this.handleTabSync);
         }
     },
 
-    handleTabSync: async function (key) {
-        if (this.tabs.hasOwnProperty(key)) {
-            chrome.tabs.onUpdated.addListener(function (tabId, changeInfo) {
-                    chrome.tabs.query(
-                        {active: true, currentWindow: true},
-                        ([tab]) => {
-                            if (changeInfo.url === tab?.url && tab && background.tabs[key] === tab.id)
-                                background.updateMainTab(tab.url, key);
-                        }
-                    );
+    //remove listener when close tab
+    handleTabSync: function (tabId, changeInfo) {
+        if (
+            !background.keysOfSyncedTabs ||
+            background.keysOfSyncedTabs.length === 0
+        )
+            chrome.tabs.onUpdated.removeListener(this.handleTabSync);
+
+        chrome.tabs.query({ active: true, currentWindow: true }, async ([tab]) => {
+            for (const key of background.keysOfSyncedTabs) {
+                if (
+                    changeInfo.url === tab?.url &&
+                    tab &&
+                    background.tabs[key] === tab.id
+                ) {
+                    await background.updateMainTab(tab.url, key);
                 }
-            );
-        }
+            }
+        });
     },
 
     updateMainTab: async function (windowUrl, key) {

@@ -1,21 +1,21 @@
 {
   "myWikiTab": {
-    "sourcePattern": "https://gitlab.com/solidbranch/clight/clight/-/issues/{0}",
-    "targetPattern": "https://en.wikipedia.org/wiki/{0}",
-    "mapping": {
-      "128": "Google_Chrome",
-      "142": "Code_refactoring",
-      "181": "SOLID"
+    "sourceUrl": "https://gitlab.com/solidbranch/clight/clight/-/issues/{TID}",
+    "targetUrl": "https://en.wikipedia.org/wiki/{TID}",
+    "repl": {
+      "128": { "to": "Google_Chrome" },
+      "142": { "to": "Code_refactoring" },
+      "181": { "to": "SOLID" }
     },
     "browserTabSyncMode": "two-way"
   },
   "myChromeDownloadTab": {
-    "sourcePattern": "https://gitlab.com/solidbranch/clight/clight/-/issues/{0}",
-    "targetPattern": "https://www.google.com/intl/{0}/chrome/",
-    "mapping": {
-      "128": "ru_ru",
-      "142": "en_us",
-      "181": "de_de"
+    "sourceUrl": "https://gitlab.com/solidbranch/clight/clight/-/issues/{TID}",
+    "targetUrl": "https://www.google.com/intl/{TID}/chrome/",
+    "repl": {
+      "128": { "to": "ru_ru" },
+      "142": { "to": "en_us" },
+      "181": { "to": "de_de" }
     }
   }
 }

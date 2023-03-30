@@ -68,11 +68,11 @@ let background = {
             for (const key in this.config) {
                 if (this.config.hasOwnProperty(key)) {
                     const tab = this.config[key];
-                    const escapeSourceUrl = tab.sourcePattern?.replace(/[/\-\\^$*+?.()|[\]]/g, '\\$&');
-                    const sourceUrlRegex = escapeSourceUrl?.replace(/[{0}]+/, '(\\d+)');
+                    const escapeSourceUrl = tab.sourceUrl?.replace(/[/\-\\^$*+?.()|[\]]/g, '\\$&');
+                    const sourceUrlRegex = escapeSourceUrl?.replace(/[{TID}]+/, '(\\d+)');
                     const idSourceUrl = request.documentURL.match(sourceUrlRegex);
-                    if (idSourceUrl && idSourceUrl[1] && tab.mapping.hasOwnProperty(idSourceUrl[1])) {
-                        const targetUrl = tab.targetPattern.replace(/[{0}]+/, tab.mapping[idSourceUrl[1]]);
+                    if (idSourceUrl && idSourceUrl[1] && tab.repl.hasOwnProperty(idSourceUrl[1])) {
+                        const targetUrl = tab.targetUrl.replace(/[{TID}]+/, tab.repl[idSourceUrl[1]].to);
                         this.tabs = await this.updateTab(key, targetUrl);
                         if (tab.hasOwnProperty('browserTabSyncMode'))
                             this.keysOfSyncedTabs.push(key);
@@ -107,17 +107,17 @@ let background = {
     updateMainTab: async function (windowUrl, key) {
         if (this.config.hasOwnProperty(key)) {
             const tab = this.config[key];
-            const escapeTargetUrl = tab.targetPattern?.replace(/[/\-\\^$*+?.()|[\]]/g, '\\$&');
-            const targetUrlRegex = escapeTargetUrl?.replace(/[{0}]+/, '(\\w+)');
+            const escapeTargetUrl = tab.targetUrl?.replace(/[/\-\\^$*+?.()|[\]]/g, '\\$&');
+            const targetUrlRegex = escapeTargetUrl?.replace(/[{TID}]+/, '(\\w+)');
             const idTargetUrl = windowUrl.match(targetUrlRegex);
 
             if (idTargetUrl && idTargetUrl[1]) {
-                const tabsId = Object.keys(tab.mapping).find(
-                    (key) => tab.mapping[key] === idTargetUrl[1]
+                const tabsId = Object.keys(tab.repl).find(
+                    (key) => tab.repl[key].to === idTargetUrl[1]
                 );
 
                 if (tabsId) {
-                    const sourceUrl = tab.sourcePattern.replace(/[{0}]+/, tabsId);
+                    const sourceUrl = tab.sourceUrl.replace(/[{TID}]+/, tabsId);
                     this.tabs = await this.updateTab(TAB_MAIN, sourceUrl);
                 }
 

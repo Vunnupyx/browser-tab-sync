@@ -4,7 +4,8 @@
     "targetPattern": "https://en.wikipedia.org/wiki/{0}",
     "mapping": {
       "128": "Google_Chrome",
-      "142": "Code_refactoring"
+      "142": "Code_refactoring",
+      "181": "SOLID"
     },
     "browserTabSyncMode": "two-way"
   },
@@ -13,7 +14,8 @@
     "targetPattern": "https://www.google.com/intl/{0}/chrome/",
     "mapping": {
       "128": "ru_ru",
-      "142": "en_us"
+      "142": "en_us",
+      "181": "de_de"
     }
   }
 }

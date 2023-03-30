@@ -18,13 +18,13 @@
     "storage",
     "contextMenus",
     "activeTab",
-    "https://gitlab.com/*"
+    "https://*/*"
   ],
   "content_scripts": [
     {
       "run_at": "document_start",
       "matches": [
-        "https://gitlab.com/*"
+        "https://*/*"
       ],
       "js": [
         "src/main.js"

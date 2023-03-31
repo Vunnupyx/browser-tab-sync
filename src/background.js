@@ -3,7 +3,6 @@ const TAB_MAIN = 'ORIGINAL_TAB'
 let background = {
     config: {},
     tabs: {},
-    tabsKeysWithSync: [],
 
     init: function () {
         this.loadConfig().then(() => StorageService.clearTabs());
@@ -59,79 +58,60 @@ let background = {
         })
     },
 
-    loadMainTab: async function (request, sender) {
+    loadTab: async function (request, sender) {
         if (sender.tab.active) {
-            this.openTabs(request.documentURL).then(async ({isTabsReloaded, tabsKeysWithSync}) => {
+            this.openTargetTabs(request.documentURL).then(async (isTabsReloaded) => {
                 if (isTabsReloaded) {
-                    this.tabsKeysWithSync = tabsKeysWithSync;
                     this.tabs = await StorageService.saveTabs(TAB_MAIN, sender.tab.id);
-                    chrome.tabs.onUpdated.removeListener(this.handleTabSync);
-                    chrome.tabs.onUpdated.addListener(this.handleTabSync);
+                } else {
+                    await this.openSourceTab(request.documentURL, sender.tab.id);
                 }
             })
         }
     },
 
-    openTabs: async function (tabUrl) {
-        let result = {isTabsReloaded: false, tabsKeysWithSync: []};
+    openSourceTab: async function (tabUrl, tabId) {
+        for (const key in this.config) {
+            const tab = this.config[key];
+            if (this.config.hasOwnProperty(key) && tab.hasOwnProperty('browserTabSyncMode')) {
+                const escapeTargetUrl = tab.targetUrl?.replace(/[/\-\\^$*+?.()|[\]]/g, '\\$&');
+                const targetUrlRegex = escapeTargetUrl?.replace(/{TID}/, '(\\w+)');
+                const idTargetUrl = tabUrl.match(targetUrlRegex);
+
+                if (idTargetUrl && idTargetUrl[1]) {
+                    const tabsId = Object.keys(tab.repl).find(
+                        (key) => tab.repl[key].to === idTargetUrl[1]
+                    );
+
+                    if (tabsId) {
+                        const sourceUrl = tab.sourceUrl.replace(/{TID}/, tabsId);
+                        await this.updateTab(TAB_MAIN, sourceUrl);
+                        this.tabs = await StorageService.saveTabs(key, tabId);
+                        return;
+                    }
+                }
+            }
+        }
+    },
+
+    openTargetTabs: async function (tabUrl) {
+        let isTabsReloaded = false;
         for (const key in this.config) {
             if (this.config.hasOwnProperty(key)) {
                 const tab = this.config[key];
                 const escapeSourceUrl = tab.sourceUrl?.replace(/[/\-\\^$*+?.()|[\]]/g, '\\$&');
-                const sourceUrlRegex = escapeSourceUrl?.replace(/[{TID}]+/, '(\\d+)');
+                const sourceUrlRegex = escapeSourceUrl?.replace(/{TID}/, '(\\d+)');
                 const idSourceUrl = tabUrl.match(sourceUrlRegex);
+
                 if (idSourceUrl && idSourceUrl[1] && tab.repl.hasOwnProperty(idSourceUrl[1])) {
-                    const targetUrl = tab.targetUrl.replace(/[{TID}]+/, tab.repl[idSourceUrl[1]].to);
+                    const targetUrl = tab.targetUrl.replace(/{TID}/, tab.repl[idSourceUrl[1]].to);
                     this.tabs = await this.updateTab(key, targetUrl);
-                    result.isTabsReloaded = true;
-                    if (tab.hasOwnProperty('browserTabSyncMode'))
-                        result.tabsKeysWithSync.push(key);
+                    isTabsReloaded = true;
                 }
             }
         }
-        return result
+        return isTabsReloaded;
     },
-
-    handleTabSync: function (tabId, changeInfo) {
-        if (
-            !Array.isArray(background.tabsKeysWithSync) ||
-            !background.tabsKeysWithSync.length
-        )
-            chrome.tabs.onUpdated.removeListener(this.handleTabSync);
-
-        chrome.tabs.query({active: true, currentWindow: true}, async ([tab]) => {
-            for (const key of background.tabsKeysWithSync) {
-                if (
-                    changeInfo.url === tab?.url &&
-                    tab &&
-                    background.tabs[key] === tab.id
-                ) {
-                    await background.updateMainTab(tab.url, key);
-                }
-            }
-        });
-    },
-
-    updateMainTab: async function (tabUrl, key) {
-        if (this.config.hasOwnProperty(key)) {
-            const tab = this.config[key];
-            const escapeTargetUrl = tab.targetUrl?.replace(/[/\-\\^$*+?.()|[\]]/g, '\\$&');
-            const targetUrlRegex = escapeTargetUrl?.replace(/[{TID}]+/, '(\\w+)');
-            const idTargetUrl = tabUrl.match(targetUrlRegex);
-
-            if (idTargetUrl && idTargetUrl[1]) {
-                const tabsId = Object.keys(tab.repl).find(
-                    (key) => tab.repl[key].to === idTargetUrl[1]
-                );
-
-                if (tabsId) {
-                    const sourceUrl = tab.sourceUrl.replace(/[{TID}]+/, tabsId);
-                    this.tabs = await this.updateTab(TAB_MAIN, sourceUrl);
-                }
-
-            }
-        }
-    }
 };
 
 document.addEventListener('DOMContentLoaded', () => {

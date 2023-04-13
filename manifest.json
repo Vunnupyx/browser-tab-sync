@@ -1,5 +1,5 @@
 {
-  "name": "Extension",
+  "name": "Tab Sync",
   "version": "1.0.0",
   "description": "Browser tabs will open automatically",
   "manifest_version": 2,

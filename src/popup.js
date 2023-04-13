@@ -1,9 +1,8 @@
 let app = {
     init: function () {
-        const updateBtn = document.getElementById("update-btn");
-        const fileInput = document.getElementById("file-input")
+        const fileInput = document.getElementById("file-input");
 
-        updateBtn.addEventListener('click', function () {
+        fileInput.addEventListener('change', function () {
             const file = fileInput.files[0];
             if (!file) {
                 return;
@@ -13,16 +12,16 @@ let app = {
                     fn: 'setConfig', config: json
                 }))
                 .catch(alert);
-        })
+        });
 
         async function readJSONFile(file) {
             return new Promise((resolve, reject) => {
                 let fileReader = new FileReader();
                 fileReader.onload = event => {
                     try {
-                        resolve(JSON.parse(event.target.result))
+                        resolve(JSON.parse(event.target.result));
                     } catch (err) {
-                        reject(err)
+                        reject(err);
                     }
                 };
                 fileReader.onerror = error => reject(error);

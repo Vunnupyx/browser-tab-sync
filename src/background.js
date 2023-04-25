@@ -1,4 +1,4 @@
-const TAB_MAIN = 'ORIGINAL_TAB'
+const TAB_MAIN = 'ORIGINAL_TAB';
 
 let background = {
     config: {},
@@ -22,42 +22,6 @@ let background = {
         this.config = await StorageService.saveConfigs(request.config);
     },
 
-    isTabAlreadyOpen: async function (tabId, url) {
-        return new Promise((resolve) => {
-            chrome.tabs.get(tabId, async (tab) => {
-                if (chrome.runtime.lastError) {
-                    resolve(false);
-                }
-                resolve(tab && tab.url === url);
-            })
-        })
-    },
-
-    updateTab: async function (key, url) {
-        return new Promise(async (resolve) => {
-            if (this.tabs.hasOwnProperty(key)) {
-                const isTabAlreadyOpen = await this.isTabAlreadyOpen(this.tabs[key], url);
-                if (!isTabAlreadyOpen) {
-                    chrome.tabs.update(this.tabs[key], {url}, () => {
-                        if (chrome.runtime.lastError)
-                            chrome.tabs.create({url, active: false}, (res) => {
-                                resolve(StorageService.saveTabs(key, res.id));
-                            })
-                        else {
-                            resolve(this.tabs);
-                        }
-                    })
-                } else {
-                    resolve(this.tabs);
-                }
-            } else {
-                chrome.tabs.create({url, active: false}, (res) => {
-                    resolve(StorageService.saveTabs(key, res.id));
-                })
-            }
-        })
-    },
-
     loadTab: async function (request, sender) {
         if (sender.tab.active) {
             this.openTargetTabs(request.documentURL).then(async (isTabsReloaded) => {
@@ -70,12 +34,31 @@ let background = {
         }
     },
 
+    openTargetTabs: async function (tabUrl) {
+        let isTabsReloaded = false;
+        for (const key in this.config) {
+            if (this.config.hasOwnProperty(key)) {
+                const tab = this.config[key];
+                const escapeSourceUrl = this.escapeStringRegexp(tab.sourceUrl);
+                const sourceUrlRegex = this.replacePathFromURL(escapeSourceUrl, '(\\d+)');
+                const idSourceUrl = tabUrl.match(sourceUrlRegex);
+
+                if (idSourceUrl && idSourceUrl[1] && tab.repl.hasOwnProperty(idSourceUrl[1])) {
+                    const targetUrl = this.replacePathFromURL(tab.targetUrl, tab.repl[idSourceUrl[1]].to);
+                    this.tabs = await this.openTab(key, targetUrl);
+                    isTabsReloaded = true;
+                }
+            }
+        }
+        return isTabsReloaded;
+    },
+
     openSourceTab: async function (tabUrl, tabId) {
         for (const key in this.config) {
             const tab = this.config[key];
             if (this.config.hasOwnProperty(key) && tab.hasOwnProperty('browserTabSyncMode')) {
-                const escapeTargetUrl = tab.targetUrl?.replace(/[/\-\\^$*+?.()|[\]]/g, '\\$&');
-                const targetUrlRegex = escapeTargetUrl?.replace(/{TID}/, '(\\w+)');
+                const escapeTargetUrl = this.escapeStringRegexp(tab.targetUrl);
+                const targetUrlRegex = this.replacePathFromURL(escapeTargetUrl, '(\\w+)');
                 const idTargetUrl = tabUrl.match(targetUrlRegex);
 
                 if (idTargetUrl && idTargetUrl[1]) {
@@ -84,8 +67,8 @@ let background = {
                     );
 
                     if (tabsId) {
-                        const sourceUrl = tab.sourceUrl.replace(/{TID}/, tabsId);
-                        await this.updateTab(TAB_MAIN, sourceUrl);
+                        const sourceUrl = this.replacePathFromURL(tab.sourceUrl, tabsId);
+                        await this.openTab(TAB_MAIN, sourceUrl);
                         this.tabs = await StorageService.saveTabs(key, tabId);
                         return;
                     }
@@ -94,24 +77,66 @@ let background = {
         }
     },
 
-    openTargetTabs: async function (tabUrl) {
-        let isTabsReloaded = false;
-        for (const key in this.config) {
-            if (this.config.hasOwnProperty(key)) {
-                const tab = this.config[key];
-                const escapeSourceUrl = tab.sourceUrl?.replace(/[/\-\\^$*+?.()|[\]]/g, '\\$&');
-                const sourceUrlRegex = escapeSourceUrl?.replace(/{TID}/, '(\\d+)');
-                const idSourceUrl = tabUrl.match(sourceUrlRegex);
+    openTab: async function (key, url) {
+        if (this.tabs.hasOwnProperty(key)) {
+            const isTabAlreadyOpen = await this.isTabAlreadyOpen(this.tabs[key], url)
+            if (isTabAlreadyOpen)
+                return this.tabs;
 
-                if (idSourceUrl && idSourceUrl[1] && tab.repl.hasOwnProperty(idSourceUrl[1])) {
-                    const targetUrl = tab.targetUrl.replace(/{TID}/, tab.repl[idSourceUrl[1]].to);
-                    this.tabs = await this.updateTab(key, targetUrl);
-                    isTabsReloaded = true;
-                }
-            }
+            return this.updateTab(key, url)
+                .then((tabs) => {
+                    return tabs
+                })
+                .catch(() => {
+                    return this.createTab(key, url)
+                })
+        } else {
+            return this.createTab(key, url);
         }
-        return isTabsReloaded;
     },
+
+    createTab: async function (key, url) {
+        return new Promise((resolve) => {
+            chrome.tabs.create({url, active: false}, (res) => {
+                resolve(StorageService.saveTabs(key, res.id));
+            })
+        })
+    },
+
+    updateTab: async function (key, url) {
+        return new Promise((resolve, reject) => {
+            chrome.tabs.update(this.tabs[key], {url}, () => {
+                if (chrome.runtime.lastError)
+                    reject(chrome.runtime.lastError);
+                resolve(this.tabs);
+            })
+        })
+    },
+
+    isTabAlreadyOpen: async function (tabId, url) {
+        return new Promise((resolve) => {
+            chrome.tabs.get(tabId, (tab) => {
+                if (chrome.runtime.lastError) {
+                    resolve(false);
+                }
+                resolve(tab && tab.url === url);
+            })
+        })
+    },
+
+    escapeStringRegexp: function (str) {
+        if (typeof str !== 'string') {
+            return;
+        }
+        return str.replace(/[/\-\\^$*+?.()|[\]]/g, '\\$&');
+    },
+
+    replacePathFromURL: function (str, val) {
+        if (typeof str !== 'string') {
+            return;
+        }
+        return str.replace(/{TID}/, val);
+    }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
